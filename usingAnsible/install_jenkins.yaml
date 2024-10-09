@@ -1,0 +1,29 @@
+---
+- name: Install Jenkins playbook
+  hosts: web
+  become: true
+  tasks:
+    - name: Update and Upgrade
+      ansible.builtin.shell: apt update -y && apt upgrade -y
+
+    - name: Install JDK
+      apt:
+        name: openjdk-17-jdk
+        state: present
+
+
+    - name: Get debian libraries updated
+      ansible.builtin.shell: |
+          curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+          echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/ | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+
+    - name: Reupdate
+      ansible.builtin.shell: sudo apt update -y
+
+    - name: Install jenkins
+      apt:
+        name: jenkins
+        state: present
+
+    - name: Start services
+      ansible.builtin.shell: systemctl start Jenkins
