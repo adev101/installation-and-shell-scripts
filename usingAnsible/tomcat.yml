@@ -1,0 +1,48 @@
+---
+- hosts: all
+  become: true
+  tasks:
+    - name: Install JDK and Maven
+      apt:
+        name:
+          - openjdk-17-jdk
+          - maven
+        state: present
+
+
+    - name: Download Tomcat 9 and unzip the folder
+      ansible.builtin.shell: |
+        cd /etc
+        wget https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.93/bin/apache-tomcat-9.0.93.tar.gz
+        tar xzfv apache-tomcat-9.0.93.tar.gz
+        mv apache-tomcat-9.0.93 tomcat
+        rm apache-tomcat-9.0.93.tar.gz
+
+    - name: Setup tomcat service
+      file: path=/etc/systemd/system/tomcat.service  state=touch
+
+    - name: Add content in service file
+      blockinfile:
+        dest: /etc/systemd/system/tomcat.service
+        block: |
+          [Unit]
+          Description=Tomcat 9 Servlet Container
+          After=network.target
+
+          [Service]
+          Type=forking
+
+          Environment=\"JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64"
+          Environment=\"JAVA_OPTS=-Djava.security.egd=file:///dev/urandom -Djava.awt.headless=true"
+          Environment=\"CATALINA_BASE=/etc/tomcat/"
+          Environment=\"CATALINA_HOME=/etc/tomcat/"
+          Environment=\"CATALINA_PID=/etc/tomcat/temp/tomcat.pid"
+          Environment=\"CATALINA_OPTS=-Xms512M -Xmx1024M -server -XX:+UseParallelGC"
+          ExecStart=/etc/tomcat/bin/startup.sh
+          ExecStop=/etc/tomcat/bin/shutdown.sh
+
+    - name: Retsart services
+      ansible.builtin.shell: |
+        systemctl daemon-reload
+        systemctl start tomcat
+...
